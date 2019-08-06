@@ -59,7 +59,7 @@ class Database{
         if(indice === -1){
             throw Error('O usuario nao existe ')
         }
-        console.log(indice)
+        
         dados.splice(indice, 1)
         return await this.escreverArquivo(dados)
     }
@@ -71,6 +71,19 @@ class Database{
         if(indice === -1){
             throw Error("O usuario nao existe")
         }
+
+        const atual = dados[indice]
+        const objetoAtualizar = {
+            ...atual,
+            ...novoDado
+        }
+
+        dados.splice(indice, 1)
+
+        return await this.escreverArquivo([
+            ...dados,
+            objetoAtualizar
+        ])
     }
 }
 

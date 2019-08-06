@@ -1,100 +1,71 @@
-const util = require('util');
-
-const obterEnderecoAsync = util.promisify(obterEndereco);
-
-
-function obterUsuario(){
-    return new Promise(function resolverUsuario(resolve, reject) {
-        setTimeout(function(){
-            return resolve({
-                id: 1,
-                nome: "alandim",
-                dataNasc: new Date()
-            })
-        }, 1000)
-    })
-
-}
-
-function obterTelefone(idUsuario){
-    return new Promise(function resolverTelefone(resolve, reject) {
-        setTimeout(function(){
-            return resolve({
-                ddd: '11',
-                numero:'5225-9988'
-            })
-        })
-    })
-}
-
-function obterEndereco(idUsuario, callback){
-    setTimeout(() =>{
-        return callback(null, {
-            rua: 'jaguare',
-            numero:0 
-        })
-    }, 2000);
-}
+const Commander = require('commander')
+const Database = require('./database')
+const Heroi = require('./heroi')
 
 async function main(){
-    try{
-        console.time('medida-prmise')
-        const usuario = await obterUsuario()
-        //const telefone = await obterTelefone(usuario.id)
-        //const endereco = await obterEnderecoAsync(usuario.id)
-        const resultado = await Promise.all([
-            obterTelefone(usuario.id),
-            obterEnderecoAsync(usuario.id)
-        ])
-        const endereco = resultado[1]
-        const telefone = resultado[0]
+    Commander
+    .version('v1')
+    .option('-n, --nome [value]', "Nome do Heroi")
+    .option('-p, --poder [value]', "Poder do Heroi")
+    .option('-i, --id [value]', 'Id do Heroi')
 
-        console.log(`
-            Nome: ${usuario.nome},
-            Logradouro: ${endereco.rua}, ${endereco.numero},
-            Telefone: (${telefone.ddd})${telefone.numero}  
-        `)
-        console.timeEnd('medida-prmise')
-    }catch(error){
-        console.log('Msg erro', error)
+    .option('-c, --cadastrar', "Cadastrar Heroi")
+    .option('-l, --listar', "Listar Herois")
+    .option('-r, --remover', "Remover Heroi por id")
+    .option('-a, --atualizar [value]', "Atualizar Heroi por id")
+    .parse(process.argv)
+
+    const heroi = new Heroi(Commander)
+
+    try{
+        if(Commander.cadastrar){
+            delete heroi.id
+
+            const resultado = await Database.cadastrar(heroi)
+
+            if(!resultado){
+                console.error('Erro ao cadastrar')
+                return;
+            }
+
+            console.log('Heroi cadastrado com sucesso.')
+        }
+
+        if(Commander.listar){
+            const resultado = await Database.listar()
+            console.log(resultado)
+            return;
+        }
+
+        if(Commander.remover){
+            const resultado = await Database.remover(heroi.id)
+            if(!resultado){
+                console.error('Nao foi possivel remover o heroi')
+                return;
+            }
+            console.log("Heroi removido com sucesso")
+        }
+
+        if(Commander.atualizar){
+
+            const idParaAtualizar = parseInt(Commander.atualizar)
+
+            const dado = JSON.stringify(heroi)
+            const heroiAtualizar = JSON.parse(dado)
+
+            const resultado = await Database.atualizar(idParaAtualizar, heroiAtualizar)
+
+            if(!resultado){
+                console.error('Nao foi possivel atualizar o heroi.')
+                return;
+            }
+            console.log('Heroi atualizado com sucesso.')
+
+        }
+
+    }catch(err){
+        console.error('Error', err)
     }
 }
 
 main()
-/*
-obterUsuario()
-.then(usuario => {
-    return obterTelefone(usuario.id)
-    .then(function resolverTelefone(resultado) {
-        return {
-            usuario: {
-                nome: usuario.nome,
-                id: usuario.id
-            },
-            telefone: resultado
-        }
-    })
-    
-})
-.then(function(resultado) {
-    const endereco = obterEnderecoAsync(resultado.usuario.id)
-    return endereco.then(function resolverEndereco(result) {
-        return {
-            usuario: resultado.usuario,
-            telefone:resultado.telefone,
-            endereco:result
-        }
-    })
-})
-.then(resultado =>{
-    console.log(`
-    Nome: ${resultado.usuario.nome},
-    Telefone: DDD: ${resultado.telefone.ddd}-${resultado.telefone.numero},
-    Logradouro:${resultado.endereco.rua}, ${resultado.endereco.numero}
-    `)
-})
-.catch(erro => {
-    console.log('Msg erro: ', erro)
-})
-
-*/
